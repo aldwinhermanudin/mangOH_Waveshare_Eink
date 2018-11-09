@@ -118,12 +118,12 @@ static const struct our_function our_cfg_script[] = {
 
 
 static struct fb_fix_screeninfo ourfb_fix ={
-	.id =		"waveshare213", 
+	.id =		"waveshare213",
 	.type =		FB_TYPE_PACKED_PIXELS,
 	.visual =	FB_VISUAL_PSEUDOCOLOR,
 	.xpanstep =	0,
 	.ypanstep =	0,
-	.ywrapstep =	0, 
+	.ywrapstep =	0,
 	.line_length =	WIDTH*BPP/8,
 	.accel =	FB_ACCEL_NONE,
 };
@@ -301,7 +301,7 @@ void ourfb_fillrect(struct fb_info *info, const struct fb_fillrect *rect)
 	ourfb_update_display(par);
 }
 
-void ourfb_copyarea(struct fb_info *info, const struct fb_copyarea *area) 
+void ourfb_copyarea(struct fb_info *info, const struct fb_copyarea *area)
 {
 	struct ourfb_par *par = info->par;
 
@@ -310,7 +310,7 @@ void ourfb_copyarea(struct fb_info *info, const struct fb_copyarea *area)
 	ourfb_update_display(par);
 }
 
-void ourfb_imageblit(struct fb_info *info, const struct fb_image *image) 
+void ourfb_imageblit(struct fb_info *info, const struct fb_image *image)
 {
 	struct ourfb_par *par = info->par;
 
@@ -550,17 +550,17 @@ static struct spi_driver ourfb_driver={
 		.owner 		=THIS_MODULE,
 
 	},
-	
+
 	.id_table	=	ourfb_spi_tbl,
 	.probe		=	ourfb_spi_init,
-	.remove 	=	ourfb_spi_remove, 
+	.remove 	=	ourfb_spi_remove,
 };
 
 
 static int __init ourfb_init(void)
 {
 	printk("new init fb driver\n");
-	
+
 	return spi_register_driver(&ourfb_driver);
 
 }
