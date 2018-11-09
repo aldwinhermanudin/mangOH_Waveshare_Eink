@@ -30,13 +30,21 @@ struct our_function {
 #define DEF_DATA(_data) { .operation=WS_DATA, .param={ .data=_data } }
 #define DEF_DELAY(_delay) { .operation=WS_DELAY, .param={ .delay_ms=_delay } }
 
+/*
+ * NOTE: The enum values correspond to the hardware and thus must not be changed
+ */
+enum ourfb_mode {
+	MODE_CMD = 0,
+	MODE_DATA = 1,
+};
 
-struct ourfb_par{
+struct ourfb_par {
 	struct spi_device *spi;
 	struct fb_info *info;
 	u16 *ssbuf;
 	int rst_gpio;
 	int mode_gpio;
+	enum ourfb_mode mode;
 };
 
 struct ourfb_platform_data {

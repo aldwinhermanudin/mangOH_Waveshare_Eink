@@ -139,50 +139,40 @@ static struct fb_var_screeninfo ourfb_var = {
 	.nonstd	=		1,
 };
 
-static int our_write(struct ourfb_par *par, u8 data)
+static void set_mode(struct ourfb_par *par, enum ourfb_mode mode)
 {
-	u8 txbuf[2]; /* allocation from stack must go */
+	if (mode != par->mode) {
+		gpio_set_value(par->mode_gpio, mode);
+		par->mode = mode;
+	}
+}
 
-	txbuf[0] = data;
+static int our_write(struct ourfb_par *par, enum ourfb_mode mode, u8 value)
+{
+	set_mode(par, mode);
+	return spi_write(par->spi, &value, 1);
+}
 
-	return spi_write(par->spi, &txbuf[0], 1);
+static void our_write_cmd(struct ourfb_par *par, u8 cmd)
+{
+	int ret = our_write(par, MODE_CMD, cmd);
+	if (ret < 0)
+		pr_err("%s: write command %02x failed with status %d\n",
+		       par->info->fix.id, cmd, ret);
 }
 
 static void our_write_data(struct ourfb_par *par, u8 data)
 {
-	int ret = 0;
-
-	/* Set data mode */
-	gpio_set_value(par->mode_gpio, 1);
-
-	ret = our_write(par, data);
+	int ret = our_write(par, MODE_DATA, data);
 	if (ret < 0)
 		pr_err("%s: write data %02x failed with status %d\n",
 			par->info->fix.id, data, ret);
 }
 
-static int our_write_data_buf(struct ourfb_par *par,
-					u8 *txbuf, int size)
+static int our_write_data_buf(struct ourfb_par *par, u8 *txbuf, int size)
 {
-	/* Set data mode */
-	gpio_set_value(par->mode_gpio, 1);
-
-	/* Write entire buffer */
+	set_mode(par, MODE_DATA);
 	return spi_write(par->spi, txbuf, size);
-}
-
-
-static void our_write_cmd(struct ourfb_par *par, u8 data)
-{
-	int ret = 0;
-
-	/* Set command mode */
-	gpio_set_value(par->mode_gpio, 0);
-
-	ret = our_write(par, data);
-	if (ret < 0)
-		pr_err("%s: write command %02x failed with status %d\n",
-			par->info->fix.id, data, ret);
 }
 
 static void our_run_cfg_script(struct ourfb_par *par)
@@ -271,19 +261,16 @@ static void ourfb_update_display(struct ourfb_par *par)
 			par->info->fix.id);
 }
 
-
-
-
-
 static int ourfb_init_display(struct ourfb_par *par)
 {
 	/* TODO: Need some error checking on gpios */
 
         /* Request GPIOs and initialize to default values */
-        gpio_request_one(par->rst_gpio, GPIOF_OUT_INIT_HIGH,
-			"WaveShare Reset Pin");
-        gpio_request_one(par->mode_gpio, GPIOF_OUT_INIT_LOW,
-			"WaveShare Data/Command Pin");
+        devm_gpio_request_one(&par->spi->dev, par->rst_gpio,
+			      GPIOF_OUT_INIT_HIGH, "WaveShare Reset Pin");
+        devm_gpio_request_one(&par->spi->dev, par->mode_gpio,
+			      GPIOF_OUT_INIT_LOW, "WaveShare Data/Command Pin");
+	par->mode = MODE_CMD;
 
 	our_reset(par);
 
