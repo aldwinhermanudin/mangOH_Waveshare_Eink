@@ -8,24 +8,28 @@
 #define HEIGHT		160
 #define BPP		16
 
-struct our_function {
-	u16 cmd;
-	u16 data;
-};
-
-
-/* Init script function */
-struct ourfb_function {
-	u16 cmd;
-	u16 data;
-};
 
 /* Init script commands */
-enum ourfb_cmd {
+enum ourfb_op {
 	WS_CMD,
 	WS_DATA,
 	WS_DELAY
 };
+
+/* Init script function */
+struct our_function {
+	enum ourfb_op operation;
+	union {
+		u8 command;
+		u8 data;
+		u16 delay_ms;
+	} param;
+};
+
+#define DEF_CMD(_cmd) { .operation=WS_CMD, .param={ .command=_cmd } }
+#define DEF_DATA(_data) { .operation=WS_DATA, .param={ .data=_data } }
+#define DEF_DELAY(_delay) { .operation=WS_DELAY, .param={ .delay_ms=_delay } }
+
 
 struct ourfb_par{
 	struct spi_device *spi;
