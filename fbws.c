@@ -199,13 +199,11 @@ static void our_run_cfg_script(struct ourfb_par *par)
 			break;
 		case WS_CMD:
 			BUG_ON(our_cfg_script[i].data > 0xFF);
-			our_write_cmd(par,
-				our_cfg_script[i].data);
+			our_write_cmd(par, our_cfg_script[i].data);
 			break;
 		case WS_DATA:
 			BUG_ON(our_cfg_script[i].data > 0xFF);
-			our_write_data(par,
-				our_cfg_script[i].data);
+			our_write_data(par, our_cfg_script[i].data);
 			break;
 		case WS_DELAY:
 			mdelay(our_cfg_script[i].data);
