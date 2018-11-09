@@ -35,13 +35,13 @@ struct ourfb_par{
 	struct spi_device *spi;
 	struct fb_info *info;
 	u16 *ssbuf;
-	int rst;
-	int dc;
+	int rst_gpio;
+	int mode_gpio;
 };
 
 struct ourfb_platform_data {
 	int rst_gpio;
-	int dc_gpio;
+	int mode_gpio;
 };
 
 /* WS Commands */

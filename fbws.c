@@ -153,7 +153,7 @@ static void our_write_data(struct ourfb_par *par, u8 data)
 	int ret = 0;
 
 	/* Set data mode */
-	gpio_set_value(par->dc, 1);
+	gpio_set_value(par->mode_gpio, 1);
 
 	ret = our_write(par, data);
 	if (ret < 0)
@@ -165,7 +165,7 @@ static int our_write_data_buf(struct ourfb_par *par,
 					u8 *txbuf, int size)
 {
 	/* Set data mode */
-	gpio_set_value(par->dc, 1);
+	gpio_set_value(par->mode_gpio, 1);
 
 	/* Write entire buffer */
 	return spi_write(par->spi, txbuf, size);
@@ -177,7 +177,7 @@ static void our_write_cmd(struct ourfb_par *par, u8 data)
 	int ret = 0;
 
 	/* Set command mode */
-	gpio_set_value(par->dc, 0);
+	gpio_set_value(par->mode_gpio, 0);
 
 	ret = our_write(par, data);
 	if (ret < 0)
@@ -227,9 +227,9 @@ static void our_set_addr_win(struct ourfb_par *par,
 static void our_reset(struct ourfb_par *par)
 {
 	/* Reset controller */
-	gpio_set_value(par->rst, 0);
+	gpio_set_value(par->rst_gpio, 0);
 	udelay(10);
-	gpio_set_value(par->rst, 1);
+	gpio_set_value(par->rst_gpio, 1);
 	mdelay(120);
 }
 
@@ -280,9 +280,9 @@ static int ourfb_init_display(struct ourfb_par *par)
 	/* TODO: Need some error checking on gpios */
 
         /* Request GPIOs and initialize to default values */
-        gpio_request_one(par->rst, GPIOF_OUT_INIT_HIGH,
+        gpio_request_one(par->rst_gpio, GPIOF_OUT_INIT_HIGH,
 			"WaveShare Reset Pin");
-        gpio_request_one(par->dc, GPIOF_OUT_INIT_LOW,
+        gpio_request_one(par->mode_gpio, GPIOF_OUT_INIT_LOW,
 			"WaveShare Data/Command Pin");
 
 	our_reset(par);
@@ -481,8 +481,8 @@ static int ourfb_spi_init(struct spi_device *spi)
 	par = info->par;
 	par->info = info;
 	par->spi = spi;
-	par->rst = pdata->rst_gpio;
-	par->dc = pdata->dc_gpio;
+	par->rst_gpio = pdata->rst_gpio;
+	par->mode_gpio = pdata->mode_gpio;
 
 #ifdef __LITTLE_ENDIAN
 	/* Allocate swapped shadow buffer */
