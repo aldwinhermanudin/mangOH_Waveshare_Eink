@@ -21,7 +21,6 @@
 #include "fbws.h"
 
 static const struct our_function our_cfg_script[] = {
-	{ WS_START, WS_START},
 	{ WS_CMD,   WS_SWRESET},
 	{ WS_DELAY, 150},
 	{ WS_CMD,  WS_SLPOUT},
@@ -115,7 +114,6 @@ static const struct our_function our_cfg_script[] = {
 	{ WS_DELAY, 100},
 	{ WS_CMD,  WS_NORON},
 	{ WS_DELAY, 10},
-	{ WS_END, WS_END},
 };
 
 
@@ -190,29 +188,27 @@ static void our_write_cmd(struct ourfb_par *par, u8 data)
 static void our_run_cfg_script(struct ourfb_par *par)
 {
 	int i = 0;
-	int end_script = 0;
 
-	do {
+	for (i = 0; i < ARRAY_SIZE(our_cfg_script); i++) {
+		const u16 *data = &our_cfg_script[i].data;
 		switch (our_cfg_script[i].cmd)
 		{
-		case WS_START:
-			break;
 		case WS_CMD:
-			BUG_ON(our_cfg_script[i].data > 0xFF);
-			our_write_cmd(par, our_cfg_script[i].data);
+			BUG_ON(*data > 0xFF);
+			our_write_cmd(par, *data);
 			break;
 		case WS_DATA:
-			BUG_ON(our_cfg_script[i].data > 0xFF);
-			our_write_data(par, our_cfg_script[i].data);
+			BUG_ON(*data > 0xFF);
+			our_write_data(par, *data);
 			break;
 		case WS_DELAY:
-			mdelay(our_cfg_script[i].data);
+			mdelay(*data);
 			break;
-		case WS_END:
-			end_script = 1;
+		default:
+			BUG();
+			break;
 		}
-		i++;
-	} while (!end_script);
+	}
 }
 
 static void our_set_addr_win(struct ourfb_par *par,

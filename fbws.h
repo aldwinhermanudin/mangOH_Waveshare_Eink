@@ -22,8 +22,6 @@ struct ourfb_function {
 
 /* Init script commands */
 enum ourfb_cmd {
-	WS_START,
-	WS_END,
 	WS_CMD,
 	WS_DATA,
 	WS_DELAY
