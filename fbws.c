@@ -20,7 +20,7 @@
 
 #include "fbws.h"
 
-static struct our_function our_cfg_script[] = {
+static const struct our_function our_cfg_script[] = {
 	{ WS_START, WS_START},
 	{ WS_CMD,   WS_SWRESET},
 	{ WS_DELAY, 150},
