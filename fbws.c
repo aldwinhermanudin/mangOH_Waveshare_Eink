@@ -124,7 +124,7 @@ static struct fb_fix_screeninfo ourfb_fix ={
 	.xpanstep =	0,
 	.ypanstep =	0,
 	.ywrapstep =	0,
-	.line_length =	WIDTH*BPP/8,
+	.line_length =	WIDTH * BPP / 8,
 	.accel =	FB_ACCEL_NONE,
 };
 
@@ -204,14 +204,14 @@ static void our_set_addr_win(struct ourfb_par *par,
 {
 	our_write_cmd(par, WS_CASET);
 	our_write_data(par, 0x00);
-	our_write_data(par, xs+2);
+	our_write_data(par, xs + 2);
 	our_write_data(par, 0x00);
-	our_write_data(par, xe+2);
+	our_write_data(par, xe + 2);
 	our_write_cmd(par, WS_RASET);
 	our_write_data(par, 0x00);
-	our_write_data(par, ys+1);
+	our_write_data(par, ys + 1);
 	our_write_data(par, 0x00);
-	our_write_data(par, ye+1);
+	our_write_data(par, ye + 1);
 }
 
 static void our_reset(struct ourfb_par *par)
@@ -232,29 +232,27 @@ static void ourfb_update_display(struct ourfb_par *par)
 	u16 *vmem16 = (u16 *)vmem;
 	u16 *ssbuf = par->ssbuf;
 
-	for (i=0; i<WIDTH*HEIGHT*BPP/8/2; i++)
+	for (i = 0; i < WIDTH * HEIGHT * BPP / 8 / 2; i++)
 		ssbuf[i] = swab16(vmem16[i]);
 #endif
 	/*
-		TODO:
-		Allow a subset of pages to be passed in
-		(for deferred I/O).  Check pages against
-		pan display settings to see if they
-		should be updated.
-	*/
+	 * TODO:
+	 * Allow a subset of pages to be passed in (for deferred I/O). Check
+	 * pages against pan display settings to see if they should be updated.
+	 */
 	/* For now, just write the full 40KiB on each update */
 
 	/* Set row/column data window */
-	our_set_addr_win(par, 0, 0, WIDTH-1, HEIGHT-1);
+	our_set_addr_win(par, 0, 0, WIDTH - 1, HEIGHT - 1);
 
 	/* Internal RAM write command */
 	our_write_cmd(par, WS_RAMWR);
 
 	/* Blast framebuffer to ST7735 internal display RAM */
 #ifdef __LITTLE_ENDIAN
-	ret = our_write_data_buf(par, (u8 *)ssbuf, WIDTH*HEIGHT*BPP/8);
+	ret = our_write_data_buf(par, (u8 *)ssbuf, WIDTH * HEIGHT * BPP / 8);
 #else
-	ret = our_write_data_buf(par, vmem, WIDTH*HEIGHT*BPP/8);
+	ret = our_write_data_buf(par, vmem, WIDTH * HEIGHT * BPP / 8);
 #endif
 	if (ret < 0)
 		pr_err("%s: spi_write failed to update display buffer\n",
@@ -309,7 +307,7 @@ void ourfb_imageblit(struct fb_info *info, const struct fb_image *image)
 
 
 static ssize_t ourfb_read(struct fb_info *info, const char __user *buf,
-		size_t count, loff_t *ppos)
+			  size_t count, loff_t *ppos)
 {
 	struct outfb_par *par = info->par;
 	unsigned long p = *ppos;
@@ -352,7 +350,7 @@ static ssize_t ourfb_read(struct fb_info *info, const char __user *buf,
 
 
 static ssize_t ourfb_write(struct fb_info *info, const char __user *buf,
-		size_t count, loff_t *ppos)
+			   size_t count, loff_t *ppos)
 {
 	struct outfb_par *par = info->par;
 	unsigned long p = *ppos;
@@ -405,7 +403,7 @@ static struct fb_ops ourfb_ops = {
 };
 
 
-static void ourfb_deferred_io(struct fb_info *info,	struct list_head *pagelist)
+static void ourfb_deferred_io(struct fb_info *info, struct list_head *pagelist)
 {
 	ourfb_update_display(info->par);
 }
@@ -429,7 +427,7 @@ static int ourfb_spi_init(struct spi_device *spi)
 
 	struct ourfb_platform_data *pdata = spi->dev.platform_data;
 
-	int vmem_size = WIDTH*HEIGHT*BPP/8;
+	int vmem_size = WIDTH * HEIGHT * BPP / 8;
 	u8 *vmem;
 	struct ourfb_par *par;
 
@@ -438,7 +436,7 @@ static int ourfb_spi_init(struct spi_device *spi)
 	if (!vmem)
 		return retval;
 
-	info =framebuffer_alloc(sizeof(struct ourfb_par),&spi ->dev);
+	info = framebuffer_alloc(sizeof(struct ourfb_par), &spi ->dev);
 	if (!info)
 	{
 		printk("Error in alloc:\n");
@@ -493,8 +491,8 @@ static int ourfb_spi_init(struct spi_device *spi)
 		goto init_fail;
 
 	printk(KERN_INFO
-		"fb%d: %s frame buffer device,\n\tusing %d KiB of video memory\n",
-		info->node, info->fix.id, vmem_size);
+	       "fb%d: %s frame buffer device,\n\tusing %d KiB of video memory\n",
+	       info->node, info->fix.id, vmem_size);
 
 	return 0;
 
@@ -518,38 +516,34 @@ static void ourfb_spi_remove(struct spi_device *spi)
 	fb_dealloc_cmap(&p->cmap);
 	iounmap(p->screen_base);
 	framebuffer_release(p);
-
 }
 
 
 static struct spi_device_id ourfb_spi_tbl[]={
-	{"waveshare213",0},
+	{"waveshare213", 0},
 	{ },
 };
 
-
- MODULE_DEVICE_TABLE(spi,ourfb_spi_tbl);
+MODULE_DEVICE_TABLE(spi, ourfb_spi_tbl);
 
 
 static struct spi_driver ourfb_driver={
 	.driver={
-		.name 		=	"waveshare213",
-		.owner 		=THIS_MODULE,
+		.name 		= "waveshare213",
+		.owner 		= THIS_MODULE,
 
 	},
 
-	.id_table	=	ourfb_spi_tbl,
-	.probe		=	ourfb_spi_init,
-	.remove 	=	ourfb_spi_remove,
+	.id_table	= ourfb_spi_tbl,
+	.probe		= ourfb_spi_init,
+	.remove		= ourfb_spi_remove,
 };
 
 
 static int __init ourfb_init(void)
 {
 	printk("new init fb driver\n");
-
 	return spi_register_driver(&ourfb_driver);
-
 }
 
 static void __exit ourfb_exit(void)
@@ -573,10 +567,6 @@ static void __exit ourfb_exit(void)
 // 	framebuffer_release(p)
 
 // }
-
-
-
-
 
 module_init(ourfb_init);
 module_exit(ourfb_exit);
