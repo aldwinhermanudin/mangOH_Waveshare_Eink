@@ -43,18 +43,28 @@ struct ourfb_platform_data {
 };
 
 /* WS Commands */
-#define WS_SW_RESET								0x12
-#define WS_DISPLAY_UPDATE_CONTROL_1				0x21
-#define WS_DISPLAY_UPDATE_CONTROL_2				0x22
-#define WS_WRITE_RAM							0x24
-#define WS_WRITE_VCOM_REGISTER					0x2C
-#define WS_WRITE_LUT_REGISTER					0x32
+/*
+ * DF: These commands *do* seem to correspond to the datasheet. Is this driver
+ * code for another chip that you are adapting?
+ */
+#define WS_SW_RESET				0x12
+#define WS_DISPLAY_UPDATE_CONTROL_1		0x21
+#define WS_DISPLAY_UPDATE_CONTROL_2		0x22
+#define WS_WRITE_RAM				0x24
+#define WS_WRITE_VCOM_REGISTER			0x2C
+#define WS_WRITE_LUT_REGISTER			0x32
 #define WS_SET_RAM_X_ADDRESS_START_END_POSITION	0x44
 #define WS_SET_RAM_Y_ADDRESS_START_END_POSITION	0x45
-#define WS_SET_RAM_X_ADDRESS_COUNTER			0x4E
-#define WS_SET_RAM_Y_ADDRESS_COUNTER			0x4F
+#define WS_SET_RAM_X_ADDRESS_COUNTER		0x4E
+#define WS_SET_RAM_Y_ADDRESS_COUNTER		0x4F
 
 
+
+/*
+ * DF: Where did all of these definitions come from? They don't seem to match
+ * the definitions from section "10. COMMAND TABLE" in the
+ * 2.13inch_e_Paper_Datasheet.pdf document.
+ */
 #define WS_NOP	0x0
 #define WS_SWRESET	0x01
 #define WS_RDDID	0x04

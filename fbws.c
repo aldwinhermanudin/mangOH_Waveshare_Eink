@@ -22,6 +22,10 @@
 
 #include "fbws.h"
 
+/*
+ * DF: This command/data series refers to the commands definitions that don't
+ * exist in the datasheet. Is this for another chip?
+ */
 static struct our_function our_cfg_script[] = {
 	{ WS_START, WS_START},
 	{ WS_CMD,   WS_SWRESET},
