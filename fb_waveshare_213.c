@@ -400,9 +400,14 @@ static int ws213fb_spi_probe(struct spi_device *spi)
 	int retval = -ENOMEM;
 	struct ws213fb_platform_data *pdata = spi->dev.platform_data;
 	const struct spi_device_id *spi_id = spi_get_device_id(spi);
-	u8 *vmem;
 	struct ws213fb_par *par;
+	u8 *vmem;
 	int vmem_size;
+
+	if (!pdata) {
+		dev_err(&spi->dev, "Required platform data was not provided");
+		return -EINVAL;
+	}
 
 	width = devices[spi_id->driver_data].width;
 	height = devices[spi_id->driver_data].height;
