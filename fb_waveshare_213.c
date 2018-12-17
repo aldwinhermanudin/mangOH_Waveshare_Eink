@@ -398,17 +398,23 @@ static int ws213fb_spi_probe(struct spi_device *spi)
 {
 	struct fb_info *info;
 	int retval = -ENOMEM;
-	struct ws213fb_platform_data *pdata = spi->dev.platform_data;
-	const struct spi_device_id *spi_id = spi_get_device_id(spi);
+	struct ws213fb_platform_data *pdata;
+	const struct spi_device_id *spi_id;
 	struct ws213fb_par *par;
 	u8 *vmem;
 	int vmem_size;
 
+	pdata = spi->dev.platform_data;
 	if (!pdata) {
 		dev_err(&spi->dev, "Required platform data was not provided");
 		return -EINVAL;
 	}
 
+	spi_id = spi_get_device_id(spi);
+	if (!spi_id) {
+		dev_err(&spi->dev, "device id not supported!\n");
+		return -EINVAL;
+	}
 	width = devices[spi_id->driver_data].width;
 	height = devices[spi_id->driver_data].height;
 	bpp = devices[spi_id->driver_data].bpp;
@@ -416,12 +422,7 @@ static int ws213fb_spi_probe(struct spi_device *spi)
 	vmem_size = width * height * bpp / 8;
 	vmem = vmalloc(vmem_size);
 	if (!vmem)
-		return retval;
-
-	if (!spi_id) {
-		dev_err(&spi->dev, "device id not supported!\n");
-		return -EINVAL;
-	}
+		return -ENOMEM;
 
 	info = framebuffer_alloc(sizeof(struct ws213fb_par), &spi ->dev);
 	if (!info)
