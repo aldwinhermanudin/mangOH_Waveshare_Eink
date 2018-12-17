@@ -2,16 +2,16 @@
 #include <linux/spi/spi.h>
 #include "fb_waveshare_213.h"
 
-#define SPI_BUS 		32766
-#define SPI_BUS_CS1 	1
-#define SPI_BUS_SPEED 	960000
+#define SPI_BUS		32766
+#define SPI_BUS_CS1	1
+#define SPI_BUS_SPEED	960000
 
 const char this_driver_name[] = "waveshare_213";
 
 static struct ws213fb_platform_data ourfb_data = {
-       .rst_gpio	= 	54,
-       .dc_gpio		= 	49,
-       .busy_gpio	= 	61, 
+	.rst_gpio	= 54,
+	.dc_gpio	= 49,
+	.busy_gpio	= 61,
 };
 
 
@@ -22,7 +22,6 @@ static int __init add_ws213fb_device_to_bus(void)
 	struct device *pdev;
 	char buff[64];
 	int status = 0;
-
 
 	spi_master = spi_busnum_to_master(SPI_BUS);
 	if (!spi_master) {
@@ -40,27 +39,27 @@ static int __init add_ws213fb_device_to_bus(void)
 	}
 
 	spi_device->chip_select = SPI_BUS_CS1;
-	spi_device->max_speed_hz =SPI_BUS_SPEED;
-	spi_device->mode =SPI_MODE_0;
+	spi_device->max_speed_hz = SPI_BUS_SPEED;
+	spi_device->mode = SPI_MODE_0;
 	spi_device->bits_per_word = 8;
 	spi_device->irq = -1;
 
-	snprintf(buff, sizeof(buff), "%s.%u",dev_name(&spi_device->master->dev),
-			spi_device->chip_select);
+	snprintf(buff, sizeof(buff), "%s.%u",
+		 dev_name(&spi_device->master->dev), spi_device->chip_select);
 
 	pdev = bus_find_device_by_name(spi_device->dev.bus, NULL, buff);
 
 
  	if (pdev) {
 		spi_dev_put(spi_device);
-		
-		if (pdev->driver && pdev->driver->name && 
-				strcmp(this_driver_name, pdev->driver->name)) {
-				printk(KERN_ALERT 
-				"Driver [%s] already registered for %s\n",
-				pdev->driver->name, buff);
+
+		if (pdev->driver && pdev->driver->name &&
+		    strcmp(this_driver_name, pdev->driver->name)) {
+			printk(KERN_ALERT
+			       "Driver [%s] already registered for %s\n",
+			       pdev->driver->name, buff);
 			status = -1;
-		} 
+		}
 	} else {
 		spi_device->dev.platform_data = &ourfb_data;
 		spi_device->max_speed_hz = SPI_BUS_SPEED;
@@ -72,12 +71,12 @@ static int __init add_ws213fb_device_to_bus(void)
 		spi_device->controller_data = NULL;
 		strlcpy(spi_device->modalias, this_driver_name, SPI_NAME_SIZE);
 		status = spi_add_device(spi_device);
-		
-		if (status < 0) {	
+
+		if (status < 0) {
 			spi_dev_put(spi_device);
-			printk(KERN_ALERT "spi_add_device() failed: %d\n", 
-				status);		
-		}				
+			printk(KERN_ALERT "spi_add_device() failed: %d\n",
+			       status);
+		}
 	}
 
 	put_device(&spi_master->dev);

@@ -5,7 +5,7 @@ sources:
 
 cflags:
 {
-	-DCONFIG_FBWS
+    -DCONFIG_FBWS
     -DCONFIG_RPIFB
 }
 
