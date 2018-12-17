@@ -398,17 +398,17 @@ static int ws213fb_spi_probe(struct spi_device *spi)
 {
 	struct fb_info *info;
 	int retval = -ENOMEM;
-
 	struct ws213fb_platform_data *pdata = spi->dev.platform_data;
 	const struct spi_device_id *spi_id = spi_get_device_id(spi);
+	u8 *vmem;
+	struct ws213fb_par *par;
+	int vmem_size;
 
 	width = devices[spi_id->driver_data].width;
 	height = devices[spi_id->driver_data].height;
 	bpp = devices[spi_id->driver_data].bpp;
 
-	u8 *vmem;
-	struct ws213fb_par *par;
-	int vmem_size = width * height * bpp / 8;
+	vmem_size = width * height * bpp / 8;
 	vmem = vmalloc(vmem_size);
 	if (!vmem)
 		return retval;
