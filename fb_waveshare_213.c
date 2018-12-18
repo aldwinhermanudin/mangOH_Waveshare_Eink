@@ -397,7 +397,7 @@ static struct fb_deferred_io ws213fb_defio = {
 static int ws213fb_spi_probe(struct spi_device *spi)
 {
 	struct fb_info *info;
-	int retval = -ENOMEM;
+	int retval = 0;
 	struct ws213fb_platform_data *pdata;
 	const struct spi_device_id *spi_id;
 	struct ws213fb_par *par;
@@ -424,8 +424,9 @@ static int ws213fb_spi_probe(struct spi_device *spi)
 	if (!vmem)
 		return -ENOMEM;
 
-	info = framebuffer_alloc(sizeof(struct ws213fb_par), &spi ->dev);
+	info = framebuffer_alloc(sizeof(struct ws213fb_par), &spi->dev);
 	if (!info)
+		retval = -ENOMEM;
 		goto fballoc_fail;
 	
 	info->screen_base = (u8 __force __iomem *)vmem;
@@ -453,7 +454,6 @@ static int ws213fb_spi_probe(struct spi_device *spi)
 	par->rst = pdata->rst_gpio;
 	par->dc = pdata->dc_gpio;
 	par->busy = pdata->busy_gpio;
-
 	
 #ifdef __LITTLE_ENDIAN
 	vmem = vzalloc(vmem_size);
@@ -464,15 +464,17 @@ static int ws213fb_spi_probe(struct spi_device *spi)
 
 	retval = register_framebuffer(info);
 	if (retval < 0) {
+		dev_err(&spi->dev, "framebuffer registration failed");
 		goto fbreg_fail;
-		printk("framebuffer failed");
 	}
 
 	spi_set_drvdata(spi, info);
 
 	retval = ws213fb_init_display(par);
-	if (retval < 0)
+	if (retval < 0) {
+		dev_err(&spi->dev, "waveshare display init failed");
 		goto init_fail;
+	}
 
 	dev_dbg(spi,
 		"fb%d: %s frame buffer device,\n\tusing %d KiB of video memory\n",
@@ -481,8 +483,6 @@ static int ws213fb_spi_probe(struct spi_device *spi)
 	return 0;
 
 init_fail:
-	spi_set_drvdata(spi, NULL);
-
 fbreg_fail:
 	framebuffer_release(info);
 
