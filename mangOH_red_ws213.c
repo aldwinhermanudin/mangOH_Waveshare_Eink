@@ -7,7 +7,7 @@
 #define SPI_BUS_SPEED	960000
 
 const char eink_device_name[] = "waveshare_213";
-static spi_device *eink_device;
+static struct spi_device *eink_device;
 
 static struct ws213fb_platform_data ourfb_data = {
 	.rst_gpio	= 54,

@@ -135,15 +135,15 @@ static void ws213_reset(struct ws213fb_par *par)
 	mdelay(200);
 }
 
-static void set_lut(struct ws213fb_par *par, unsigned char *lut)
+static void set_lut(struct ws213fb_par *par, const unsigned char *lut)
 {
-	ws213_write_cmd(par, WS_WRITE_LUT_REGISTER);
 	int i;
+	ws213_write_cmd(par, WS_WRITE_LUT_REGISTER);
 	for (i = 0; i < 30; i++)
 		ws213_write_data(par, lut[i]);
 }
 
-static int int_lut(struct ws213fb_par *par, unsigned char *lut)
+static int int_lut(struct ws213fb_par *par, const unsigned char *lut)
 {
 	ws213_reset(par);
 	ws213_write_cmd(par, WS_DRIVER_OUTPUT_CONTROL);
@@ -193,12 +193,12 @@ static void set_memory_pointer(struct ws213fb_par *par, int x, int y)
 
 static void clear_frame_memory(struct ws213fb_par *par, unsigned char color)
 {
-	set_memory_area(par, 0, 0, width - 1, height - 1);
 	int j;
+	set_memory_area(par, 0, 0, width - 1, height - 1);
 	for(j = 0; j < height; j++) {
+		int i;
 		set_memory_pointer(par, 0, j);
 		ws213_write_cmd(par, WS_WRITE_RAM);
-		int i;
 		for(i = 0; i < width / 8; i++)
 			ws213_write_data(par, color);			
 	}
@@ -207,9 +207,9 @@ static void clear_frame_memory(struct ws213fb_par *par, unsigned char color)
 static void set_frame_memory(struct ws213fb_par *par,
 			     unsigned char *image_buffer)
 {
+	int j;
 	set_memory_area(par, 0, 0, width - 1, height - 1);
 
-	int j;
 	for (j = 0; j < height; j++) {
 		int i;
 		set_memory_pointer(par, 0, j);
@@ -264,13 +264,12 @@ static int ws213fb_init_display(struct ws213fb_par *par)
 
 static void ws213fb_update_display(struct ws213fb_par *par)
 {
-	int ret = 0;
 	u8 *vmem = par->info->screen_base;
 #ifdef __LITTLE_ENDIAN
-	printk("goto __LITTLE_ENDIAN\n");
  	int i;
 	u8 *vmem8 = (u8 *)vmem;
  	u8 *ssbuf = par->ssbuf;
+	printk("goto __LITTLE_ENDIAN\n");
 
  	for (i = 0; i < width * height * bpp / 8; i++)
  		ssbuf[i] = vmem8[i];
