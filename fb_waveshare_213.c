@@ -376,8 +376,8 @@ static struct waveshare_eink_device_properties devices[] =
 };
 
 static struct spi_device_id waveshare_eink_tbl[] = {
-	{"waveshare_213", DEV_WS_213},
-	{"waveshare_27", DEV_WS_27},
+	{ "waveshare_213", (kernel_ulong_t)&devices[DEV_WS_213] },
+	{ "waveshare_27",  (kernel_ulong_t)&devices[DEV_WS_27] },
 	{ },
 };
 MODULE_DEVICE_TABLE(spi, waveshare_eink_tbl);
@@ -399,6 +399,7 @@ static int ws213fb_spi_probe(struct spi_device *spi)
 	int retval = 0;
 	struct ws213fb_platform_data *pdata;
 	const struct spi_device_id *spi_id;
+	const struct waveshare_eink_device_properties *dev_props;
 	struct ws213fb_par *par;
 	u8 *vmem;
 	int vmem_size;
@@ -414,9 +415,16 @@ static int ws213fb_spi_probe(struct spi_device *spi)
 		dev_err(&spi->dev, "device id not supported!\n");
 		return -EINVAL;
 	}
-	width = devices[spi_id->driver_data].width;
-	height = devices[spi_id->driver_data].height;
-	bpp = devices[spi_id->driver_data].bpp;
+
+	dev_props = (const struct waveshare_eink_device_properties *)
+		spi_id->driver_data;
+	if (!dev_props) {
+		dev_err(&spi->dev, "device definition lacks driver_data\n");
+		return -EINVAL;
+	}
+	width = dev_props->width;
+	height = dev_props->height;
+	bpp = dev_props->bpp;
 
 	vmem_size = width * height * bpp / 8;
 	vmem = vmalloc(vmem_size);
