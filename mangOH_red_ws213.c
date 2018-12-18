@@ -18,8 +18,6 @@ static struct ws213fb_platform_data ourfb_data = {
 static int __init add_ws213fb_device_to_bus(void)
 {
 	struct spi_master *spi_master;
-	struct eink_device *eink_device;
-	struct device *pdev;
 	int status = 0;
 
 	spi_master = spi_busnum_to_master(SPI_BUS);

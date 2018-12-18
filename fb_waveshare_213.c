@@ -48,14 +48,14 @@ static unsigned height = 0;
 static unsigned bpp = 0;
 
 
-const unsigned char lut_full_update[] = {
+const u8 lut_full_update[] = {
 	0x22, 0x55, 0xAA, 0x55, 0xAA, 0x55, 0xAA, 0x11,
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E,
 	0x01, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
-const unsigned char lut_partial_update[] = {
+const u8 lut_partial_update[] = {
 	0x18, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	0x0F, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -102,23 +102,30 @@ static void ws213_write_data(struct ws213fb_par *par, u8 data)
 	}
 }
 
-static int ws213_write_data_buf(struct ws213fb_par *par, u8 *txbuf, int size)
+#if 0
+/*
+ * Commenting out this function because it's not currently used. Is it possible
+ * to use this function in set_lut rather than a loop and calls to
+ * ws213_write_data()?
+ */
+static int ws213_write_data_buf(struct ws213fb_par *par, u8 *txbuf, size_t size)
 {
 	gpio_set_value(par->dc, 1);
 	
 	return spi_write(par->spi, txbuf, size);
 }
+#endif
 
-static void ws213_write_cmd(struct ws213fb_par *par, u8 data)
+static void ws213_write_cmd(struct ws213fb_par *par, u8 cmd)
 {
 	int ret = 0;
 
 	gpio_set_value(par->dc, 0);
 	
-	ret = ws213_write(par, data);
+	ret = ws213_write(par, cmd);
 	if (ret < 0)
 		pr_err("%s: write command %02x failed with status %d\n",
-		       par->info->fix.id, data, ret);
+		       par->info->fix.id, cmd, ret);
 }
 
 static void wait_until_idle(struct ws213fb_par *par)
@@ -135,15 +142,15 @@ static void ws213_reset(struct ws213fb_par *par)
 	mdelay(200);
 }
 
-static void set_lut(struct ws213fb_par *par, const unsigned char *lut)
+static void set_lut(struct ws213fb_par *par, const u8 *lut, size_t lut_size)
 {
 	int i;
 	ws213_write_cmd(par, WS_WRITE_LUT_REGISTER);
-	for (i = 0; i < 30; i++)
+	for (i = 0; i < lut_size; i++)
 		ws213_write_data(par, lut[i]);
 }
 
-static int int_lut(struct ws213fb_par *par, const unsigned char *lut)
+static void int_lut(struct ws213fb_par *par, const u8 *lut, size_t lut_size)
 {
 	ws213_reset(par);
 	ws213_write_cmd(par, WS_DRIVER_OUTPUT_CONTROL);
@@ -162,8 +169,7 @@ static int int_lut(struct ws213fb_par *par, const unsigned char *lut)
 	ws213_write_data(par, 0x08);
 	ws213_write_cmd(par, WS_DATA_ENTRY_MODE_SETTING);
 	ws213_write_data(par, 0x03);
-	set_lut(par, lut);
-	return 0;
+	set_lut(par, lut, lut_size);
 }
 
 static void set_memory_area(struct ws213fb_par *par, int x_start, int y_start,
@@ -191,7 +197,7 @@ static void set_memory_pointer(struct ws213fb_par *par, int x, int y)
 	wait_until_idle(par);
 }
 
-static void clear_frame_memory(struct ws213fb_par *par, unsigned char color)
+static void clear_frame_memory(struct ws213fb_par *par, u8 color)
 {
 	int j;
 	set_memory_area(par, 0, 0, width - 1, height - 1);
@@ -204,8 +210,7 @@ static void clear_frame_memory(struct ws213fb_par *par, unsigned char color)
 	}
 }
 
-static void set_frame_memory(struct ws213fb_par *par,
-			     unsigned char *image_buffer)
+static void set_frame_memory(struct ws213fb_par *par, u8 *image_buffer)
 {
 	int j;
 	set_memory_area(par, 0, 0, width - 1, height - 1);
@@ -231,7 +236,7 @@ static void display_frame(struct ws213fb_par *par)
 	wait_until_idle(par);
 }
 
-static int ws213fb_init_display(struct ws213fb_par *par)
+static void ws213fb_init_display(struct ws213fb_par *par)
 {
 	gpio_request(par->rst, "sysfs");
 	gpio_request(par->dc, "sysfs");
@@ -250,16 +255,12 @@ static int ws213fb_init_display(struct ws213fb_par *par)
 	gpio_export(par->busy, true);
 
 
-	if (int_lut(par, lut_full_update) != 0)
-		printk("Init lut error");
+	int_lut(par, lut_full_update, ARRAY_SIZE(lut_full_update));
 		
 	clear_frame_memory(par, 0xFF);
 	display_frame(par);
 
-	if (int_lut(par, lut_partial_update) != 0)
-		printk("Init lut error");
-	
-	return 0;
+	int_lut(par, lut_partial_update, ARRAY_SIZE(lut_partial_update));
 }
 
 static void ws213fb_update_display(struct ws213fb_par *par)
@@ -432,9 +433,10 @@ static int ws213fb_spi_probe(struct spi_device *spi)
 		return -ENOMEM;
 
 	info = framebuffer_alloc(sizeof(struct ws213fb_par), &spi->dev);
-	if (!info)
+	if (!info) {
 		retval = -ENOMEM;
 		goto fballoc_fail;
+	}
 	
 	info->screen_base = (u8 __force __iomem *)vmem;
 	info->fbops = &ws213fb_ops;
@@ -477,19 +479,14 @@ static int ws213fb_spi_probe(struct spi_device *spi)
 
 	spi_set_drvdata(spi, info);
 
-	retval = ws213fb_init_display(par);
-	if (retval < 0) {
-		dev_err(&spi->dev, "waveshare display init failed");
-		goto init_fail;
-	}
+	ws213fb_init_display(par);
 
-	dev_dbg(spi,
+	dev_dbg(&spi->dev,
 		"fb%d: %s frame buffer device,\n\tusing %d KiB of video memory\n",
 		info->node, info->fix.id, vmem_size);
 
 	return 0;
 
-init_fail:
 fbreg_fail:
 	framebuffer_release(info);
 
@@ -499,13 +496,15 @@ fballoc_fail:
 	return retval;
 }
 
-static void ws213fb_spi_remove(struct spi_device *spi)
+static int ws213fb_spi_remove(struct spi_device *spi)
 {
 	struct fb_info *p = spi_get_drvdata(spi);
 	unregister_framebuffer(p);
 	fb_dealloc_cmap(&p->cmap);
 	iounmap(p->screen_base);
 	framebuffer_release(p);
+
+	return 0;
 }
 
 static struct spi_driver ws213fb_driver = {
