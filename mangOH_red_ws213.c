@@ -19,7 +19,7 @@ static struct spi_device *eink_device;
 #define CF3_GPIO24	(11)
 #endif
 
-static struct ws213fb_platform_data ourfb_data = {
+static struct ws213fb_platform_data ws213_pdata = {
 	.rst_gpio	= CF3_GPIO23,
 	.dc_gpio	= CF3_GPIO22,
 	.busy_gpio	= CF3_GPIO24,
@@ -50,7 +50,7 @@ static int __init add_ws213fb_device_to_bus(void)
 	eink_device->mode = SPI_MODE_3;
 	eink_device->bits_per_word = 8;
 	eink_device->irq = -1;
-	eink_device->dev.platform_data = &ourfb_data;
+	eink_device->dev.platform_data = &ws213_pdata;
 	eink_device->controller_state = NULL;
 	eink_device->controller_data = NULL;
 	strlcpy(eink_device->modalias, eink_device_name, SPI_NAME_SIZE);
