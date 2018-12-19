@@ -20,10 +20,6 @@
 
 #include "fb_waveshare_213.h"
 
-#define WIDTH	128
-#define HEIGHT	250
-#define BPP	1
-
 #define WS_SW_RESET				0x12
 #define WS_DISPLAY_UPDATE_CONTROL_1		0x21
 #define WS_DISPLAY_UPDATE_CONTROL_2		0x22
@@ -67,26 +63,6 @@ const u8 lut_partial_update[] = {
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	0x0F, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-};
-
-static struct fb_fix_screeninfo ws213fb_fix = {
-	.id		= "waveshare213",
-	.type		= FB_TYPE_PACKED_PIXELS,
-	.visual		= FB_VISUAL_PSEUDOCOLOR,
-	.xpanstep	= 0,
-	.ypanstep	= 0,
-	.ywrapstep	= 0,
-	.line_length	= WIDTH * BPP / 8,
-	.accel		= FB_ACCEL_NONE,
-};
-
-static struct fb_var_screeninfo ws213fb_var = {
-	.xres 		= WIDTH,
-	.yres 		= HEIGHT,
-	.xres_virtual	= WIDTH,
-	.yres_virtual	= HEIGHT,
-	.bits_per_pixel	= BPP,
-	.nonstd		= 1,
 };
 
 static int ws213_write(struct ws213fb_par *par, u8 data)
@@ -433,7 +409,7 @@ static int ws213fb_spi_probe(struct spi_device *spi)
 	bpp = dev_props->bpp;
 
 	vmem_size = width * height * bpp / 8;
-	vmem = vmalloc(vmem_size);
+	vmem = vzalloc(vmem_size);
 	if (!vmem)
 		return -ENOMEM;
 
@@ -445,27 +421,34 @@ static int ws213fb_spi_probe(struct spi_device *spi)
 
 	info->screen_base = (u8 __force __iomem *)vmem;
 	info->fbops = &ws213fb_ops;
-	info->fix = ws213fb_fix;
-	info->fix.smem_len = vmem_size;
-	info->fix.line_length =	width * bpp / 8;
 
-	info->var = ws213fb_var;
+	WARN_ON(strlcpy(info->fix.id, "waveshare213", sizeof(info->fix.id)) >=
+		sizeof(info->fix.id));
+	info->fix.type		= FB_TYPE_PACKED_PIXELS;
+	info->fix.visual	= FB_VISUAL_PSEUDOCOLOR;
+	info->fix.smem_len	= vmem_size;
+	info->fix.xpanstep	= 0;
+	info->fix.ypanstep	= 0;
+	info->fix.ywrapstep	= 0;
+	info->fix.line_length	= width * bpp / 8;
+
 	info->var.xres			= width;
 	info->var.yres			= height;
 	info->var.xres_virtual		= width;
 	info->var.yres_virtual		= height;
 	info->var.bits_per_pixel	= bpp;
+
 	info->flags = FBINFO_FLAG_DEFAULT | FBINFO_VIRTFB;
 
 	info->fbdefio = &ws213fb_defio;
 	fb_deferred_io_init(info);
 
 	par = info->par;
-	par->info = info;
-	par->spi = spi;
-	par->rst = pdata->rst_gpio;
-	par->dc = pdata->dc_gpio;
-	par->busy = pdata->busy_gpio;
+	par->info	= info;
+	par->spi	= spi;
+	par->rst	= pdata->rst_gpio;
+	par->dc		= pdata->dc_gpio;
+	par->busy	= pdata->busy_gpio;
 
 #ifdef __LITTLE_ENDIAN
 	vmem = vzalloc(vmem_size);
