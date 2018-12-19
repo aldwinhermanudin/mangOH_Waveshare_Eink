@@ -9,10 +9,20 @@
 const char eink_device_name[] = "waveshare_213";
 static struct spi_device *eink_device;
 
+#if defined(CONFIG_ARCH_MSM9615)
+#define CF3_GPIO22	(49)
+#define CF3_GPIO23	(54)
+#define CF3_GPIO24	(61)
+#elif defined(CONFIG_ARCH_MDM9607)
+#define CF3_GPIO22	 (9)
+#define CF3_GPIO23	(10)
+#define CF3_GPIO24	(11)
+#endif
+
 static struct ws213fb_platform_data ourfb_data = {
-	.rst_gpio	= 54,
-	.dc_gpio	= 49,
-	.busy_gpio	= 61,
+	.rst_gpio	= CF3_GPIO23,
+	.dc_gpio	= CF3_GPIO22,
+	.busy_gpio	= CF3_GPIO24,
 };
 
 static int __init add_ws213fb_device_to_bus(void)
