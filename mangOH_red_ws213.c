@@ -1,6 +1,6 @@
 #include <linux/module.h>
 #include <linux/spi/spi.h>
-#include "fb_waveshare_213.h"
+#include "fb_waveshare_eink.h"
 
 #define SPI_BUS		32766
 #define SPI_BUS_CS1	1
@@ -19,7 +19,7 @@ static struct spi_device *eink_device;
 #define CF3_GPIO24	(11)
 #endif
 
-static struct ws213fb_platform_data ws213_pdata = {
+static struct waveshare_eink_platform_data ws213_pdata = {
 	.rst_gpio	= CF3_GPIO23,
 	.dc_gpio	= CF3_GPIO22,
 	.busy_gpio	= CF3_GPIO24,

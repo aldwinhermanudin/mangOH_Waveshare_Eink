@@ -1,6 +1,6 @@
 sources:
 {
-    fb_waveshare_213.c
+    fb_waveshare_eink.c
 }
 
 cflags:

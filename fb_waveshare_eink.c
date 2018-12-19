@@ -18,7 +18,7 @@
 #include <linux/pagemap.h>
 #include <linux/device.h>
 
-#include "fb_waveshare_213.h"
+#include "fb_waveshare_eink.h"
 
 #define WS_SW_RESET				0x12
 #define WS_DISPLAY_UPDATE_CONTROL_1		0x21
@@ -42,7 +42,7 @@ static unsigned width = 0;
 static unsigned height = 0;
 static unsigned bpp = 0;
 
-struct ws213fb_par {
+struct ws_eink_fb_par {
 	struct spi_device *spi;
 	struct fb_info *info;
 	u8 *ssbuf;
@@ -65,19 +65,19 @@ const u8 lut_partial_update[] = {
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
-static int ws213_write(struct ws213fb_par *par, u8 data)
+static int ws_eink_write(struct ws_eink_fb_par *par, u8 data)
 {
 	u8 txbuf[1];
 	txbuf[0] = data;
 	return spi_write(par->spi, &txbuf[0], 1);
 }
 
-static void ws213_write_data(struct ws213fb_par *par, u8 data)
+static void ws_eink_write_data(struct ws_eink_fb_par *par, u8 data)
 {
 	int ret = 0;
 	gpio_set_value(par->dc, 1);
 
-	ret = ws213_write(par, data);
+	ret = ws_eink_write(par, data);
 	if (ret < 0) {
 		printk("spi write data error\n");
 		pr_err("%s: write data %02x failed with status %d\n",
@@ -85,7 +85,7 @@ static void ws213_write_data(struct ws213fb_par *par, u8 data)
 	}
 }
 
-static int ws213_write_data_buf(struct ws213fb_par *par, const u8 *txbuf,
+static int ws_eink_write_data_buf(struct ws_eink_fb_par *par, const u8 *txbuf,
 				size_t size)
 {
 	gpio_set_value(par->dc, 1);
@@ -93,25 +93,25 @@ static int ws213_write_data_buf(struct ws213fb_par *par, const u8 *txbuf,
 	return spi_write(par->spi, txbuf, size);
 }
 
-static void ws213_write_cmd(struct ws213fb_par *par, u8 cmd)
+static void ws_eink_write_cmd(struct ws_eink_fb_par *par, u8 cmd)
 {
 	int ret = 0;
 
 	gpio_set_value(par->dc, 0);
 
-	ret = ws213_write(par, cmd);
+	ret = ws_eink_write(par, cmd);
 	if (ret < 0)
 		pr_err("%s: write command %02x failed with status %d\n",
 		       par->info->fix.id, cmd, ret);
 }
 
-static void wait_until_idle(struct ws213fb_par *par)
+static void wait_until_idle(struct ws_eink_fb_par *par)
 {
 	while (gpio_get_value(par->busy) != 0)
 		mdelay(100);
 }
 
-static void ws213_reset(struct ws213fb_par *par)
+static void ws_eink_reset(struct ws_eink_fb_par *par)
 {
 	gpio_set_value(par->rst, 0);
 	mdelay(200);
@@ -119,63 +119,64 @@ static void ws213_reset(struct ws213fb_par *par)
 	mdelay(200);
 }
 
-static void set_lut(struct ws213fb_par *par, const u8 *lut, size_t lut_size)
+static void set_lut(struct ws_eink_fb_par *par, const u8 *lut, size_t lut_size)
 {
 	int ret;
-	ws213_write_cmd(par, WS_WRITE_LUT_REGISTER);
-	ret = ws213_write_data_buf(par, lut, lut_size);
+	ws_eink_write_cmd(par, WS_WRITE_LUT_REGISTER);
+	ret = ws_eink_write_data_buf(par, lut, lut_size);
 	if (ret != 0)
-		dev_err(&par->spi->dev, "ws213_write_data_buf failed (%d)", ret);
+		dev_err(&par->spi->dev, "ws_eink_write_data_buf failed (%d)",
+			ret);
 }
 
-static void int_lut(struct ws213fb_par *par, const u8 *lut, size_t lut_size)
+static void int_lut(struct ws_eink_fb_par *par, const u8 *lut, size_t lut_size)
 {
-	ws213_reset(par);
-	ws213_write_cmd(par, WS_DRIVER_OUTPUT_CONTROL);
-	ws213_write_data(par, (height - 1) & 0xFF);
-	ws213_write_data(par, ((height - 1) >> 8) & 0xFF);
-	ws213_write_data(par, 0x00);
-	ws213_write_cmd(par, WS_BOOSTER_SOFT_START_CONTROL);
-	ws213_write_data(par, 0xD7);
-	ws213_write_data(par, 0xD6);
-	ws213_write_data(par, 0x9D);
-	ws213_write_cmd(par, WS_WRITE_VCOM_REGISTER);
-	ws213_write_data(par, 0xA8);
-	ws213_write_cmd(par, WS_SET_DUMMY_LINE_PERIOD);
-	ws213_write_data(par, 0x1A);
-	ws213_write_cmd(par, WS_SET_GATE_TIME);
-	ws213_write_data(par, 0x08);
-	ws213_write_cmd(par, WS_DATA_ENTRY_MODE_SETTING);
-	ws213_write_data(par, 0x03);
+	ws_eink_reset(par);
+	ws_eink_write_cmd(par, WS_DRIVER_OUTPUT_CONTROL);
+	ws_eink_write_data(par, (height - 1) & 0xFF);
+	ws_eink_write_data(par, ((height - 1) >> 8) & 0xFF);
+	ws_eink_write_data(par, 0x00);
+	ws_eink_write_cmd(par, WS_BOOSTER_SOFT_START_CONTROL);
+	ws_eink_write_data(par, 0xD7);
+	ws_eink_write_data(par, 0xD6);
+	ws_eink_write_data(par, 0x9D);
+	ws_eink_write_cmd(par, WS_WRITE_VCOM_REGISTER);
+	ws_eink_write_data(par, 0xA8);
+	ws_eink_write_cmd(par, WS_SET_DUMMY_LINE_PERIOD);
+	ws_eink_write_data(par, 0x1A);
+	ws_eink_write_cmd(par, WS_SET_GATE_TIME);
+	ws_eink_write_data(par, 0x08);
+	ws_eink_write_cmd(par, WS_DATA_ENTRY_MODE_SETTING);
+	ws_eink_write_data(par, 0x03);
 	set_lut(par, lut, lut_size);
 }
 
-static void set_memory_area(struct ws213fb_par *par, int x_start, int y_start,
-			    int x_end, int y_end)
+static void set_memory_area(struct ws_eink_fb_par *par, int x_start,
+			    int y_start, int x_end, int y_end)
 {
-	ws213_write_cmd(par, WS_SET_RAM_X_ADDRESS_START_END_POSITION);
-	ws213_write_data(par, (x_start >> 3) & 0xFF);
-	ws213_write_data(par, (x_end >> 3) & 0xFF);
+	ws_eink_write_cmd(par, WS_SET_RAM_X_ADDRESS_START_END_POSITION);
+	ws_eink_write_data(par, (x_start >> 3) & 0xFF);
+	ws_eink_write_data(par, (x_end >> 3) & 0xFF);
 
-	ws213_write_cmd(par, WS_SET_RAM_Y_ADDRESS_START_END_POSITION);
-	ws213_write_data(par, y_start & 0xFF);
-	ws213_write_data(par, (y_start >> 8) & 0xFF);
-	ws213_write_data(par, y_end & 0xFF);
-	ws213_write_data(par, (y_end >> 8) & 0xFF);
+	ws_eink_write_cmd(par, WS_SET_RAM_Y_ADDRESS_START_END_POSITION);
+	ws_eink_write_data(par, y_start & 0xFF);
+	ws_eink_write_data(par, (y_start >> 8) & 0xFF);
+	ws_eink_write_data(par, y_end & 0xFF);
+	ws_eink_write_data(par, (y_end >> 8) & 0xFF);
 }
 
-static void set_memory_pointer(struct ws213fb_par *par, int x, int y)
+static void set_memory_pointer(struct ws_eink_fb_par *par, int x, int y)
 {
-	ws213_write_cmd(par, WS_SET_RAM_X_ADDRESS_COUNTER);
-	ws213_write_data(par, (x >> 3) & 0xFF);
+	ws_eink_write_cmd(par, WS_SET_RAM_X_ADDRESS_COUNTER);
+	ws_eink_write_data(par, (x >> 3) & 0xFF);
 
-	ws213_write_cmd(par, WS_SET_RAM_Y_ADDRESS_COUNTER);
-	ws213_write_data(par, y & 0xFF);
-	ws213_write_data(par, (y >> 8) & 0xFF);
+	ws_eink_write_cmd(par, WS_SET_RAM_Y_ADDRESS_COUNTER);
+	ws_eink_write_data(par, y & 0xFF);
+	ws_eink_write_data(par, (y >> 8) & 0xFF);
 	wait_until_idle(par);
 }
 
-static void clear_frame_memory(struct ws213fb_par *par, u8 color)
+static void clear_frame_memory(struct ws_eink_fb_par *par, u8 color)
 {
 	int j;
 	u8 solid_line[width / 8];
@@ -184,8 +185,8 @@ static void clear_frame_memory(struct ws213fb_par *par, u8 color)
 	for (j = 0; j < height; j++) {
 		int ret;
 		set_memory_pointer(par, 0, j);
-		ws213_write_cmd(par, WS_WRITE_RAM);
-		ret = ws213_write_data_buf(par, solid_line,
+		ws_eink_write_cmd(par, WS_WRITE_RAM);
+		ret = ws_eink_write_data_buf(par, solid_line,
 					   ARRAY_SIZE(solid_line));
 		if (ret != 0)
 			dev_err(&par->spi->dev,
@@ -194,7 +195,7 @@ static void clear_frame_memory(struct ws213fb_par *par, u8 color)
 	}
 }
 
-static void set_frame_memory(struct ws213fb_par *par, u8 *image_buffer)
+static void set_frame_memory(struct ws_eink_fb_par *par, u8 *image_buffer)
 {
 	int row;
 	set_memory_area(par, 0, 0, width - 1, height - 1);
@@ -203,10 +204,11 @@ static void set_frame_memory(struct ws213fb_par *par, u8 *image_buffer)
 		int ret;
 		const size_t row_bytes = width / 8;
 		set_memory_pointer(par, 0, row);
-		ws213_write_cmd(par, WS_WRITE_RAM);
+		ws_eink_write_cmd(par, WS_WRITE_RAM);
 
-		ret = ws213_write_data_buf(par, &image_buffer[row * row_bytes],
-					   row_bytes);
+		ret = ws_eink_write_data_buf(par,
+					     &image_buffer[row * row_bytes],
+					     row_bytes);
 		if (ret != 0)
 			dev_err(&par->spi->dev,
 				"Failure while writing display memory (%d)",
@@ -214,17 +216,17 @@ static void set_frame_memory(struct ws213fb_par *par, u8 *image_buffer)
 	}
 }
 
-static void display_frame(struct ws213fb_par *par)
+static void display_frame(struct ws_eink_fb_par *par)
 {
-	ws213_write_cmd(par, WS_DISPLAY_UPDATE_CONTROL_2);
-	ws213_write_data(par, 0xC4);
-	ws213_write_cmd(par, WS_MASTER_ACTIVATION);
-	ws213_write_cmd(par, WS_TERMINATE_FRAME_READ_WRITE);
+	ws_eink_write_cmd(par, WS_DISPLAY_UPDATE_CONTROL_2);
+	ws_eink_write_data(par, 0xC4);
+	ws_eink_write_cmd(par, WS_MASTER_ACTIVATION);
+	ws_eink_write_cmd(par, WS_TERMINATE_FRAME_READ_WRITE);
 
 	wait_until_idle(par);
 }
 
-static void ws213fb_init_display(struct ws213fb_par *par)
+static void ws_eink_init_display(struct ws_eink_fb_par *par)
 {
 	gpio_request(par->rst, "sysfs");
 	gpio_request(par->dc, "sysfs");
@@ -250,7 +252,7 @@ static void ws213fb_init_display(struct ws213fb_par *par)
 	int_lut(par, lut_partial_update, ARRAY_SIZE(lut_partial_update));
 }
 
-static void ws213fb_update_display(struct ws213fb_par *par)
+static void ws_eink_update_display(struct ws_eink_fb_par *par)
 {
 	u8 *vmem = par->info->screen_base;
 
@@ -262,28 +264,28 @@ static void ws213fb_update_display(struct ws213fb_par *par)
 #endif
 }
 
-void ws213fb_fillrect(struct fb_info *info, const struct fb_fillrect *rect)
+void ws_eink_fb_fillrect(struct fb_info *info, const struct fb_fillrect *rect)
 {
-	struct ws213fb_par *par = info->par;
+	struct ws_eink_fb_par *par = info->par;
 	sys_fillrect(info, rect);
-	ws213fb_update_display(par);
+	ws_eink_update_display(par);
 }
 
-void ws213fb_copyarea(struct fb_info *info, const struct fb_copyarea *area)
+void ws_eink_fb_copyarea(struct fb_info *info, const struct fb_copyarea *area)
 {
-	struct ws213fb_par *par = info->par;
+	struct ws_eink_fb_par *par = info->par;
 	sys_copyarea(info, area);
-	ws213fb_update_display(par);
+	ws_eink_update_display(par);
 }
 
-void ws213fb_imageblit(struct fb_info *info, const struct fb_image *image)
+void ws_eink_fb_imageblit(struct fb_info *info, const struct fb_image *image)
 {
-	struct ws213fb_par *par = info->par;
+	struct ws_eink_fb_par *par = info->par;
 	sys_imageblit(info, image);
-	ws213fb_update_display(par);
+	ws_eink_update_display(par);
 }
 
-static ssize_t ws213fb_write(struct fb_info *info, const char __user *buf,
+static ssize_t ws_eink_fb_write(struct fb_info *info, const char __user *buf,
 			     size_t count, loff_t *ppos)
 {
 	unsigned long p = *ppos;
@@ -322,13 +324,13 @@ static ssize_t ws213fb_write(struct fb_info *info, const char __user *buf,
 	return (err) ? err : count;
 }
 
-static struct fb_ops ws213fb_ops = {
+static struct fb_ops ws_eink_ops = {
 	.owner		= THIS_MODULE,
 	.fb_read	= fb_sys_read,
-	.fb_write	= ws213fb_write,
-	.fb_fillrect	= ws213fb_fillrect,
-	.fb_copyarea	= ws213fb_copyarea,
-	.fb_imageblit	= ws213fb_imageblit,
+	.fb_write	= ws_eink_fb_write,
+	.fb_fillrect	= ws_eink_fb_fillrect,
+	.fb_copyarea	= ws_eink_fb_copyarea,
+	.fb_imageblit	= ws_eink_fb_imageblit,
 };
 
 enum waveshare_devices {
@@ -364,25 +366,25 @@ static struct spi_device_id waveshare_eink_tbl[] = {
 };
 MODULE_DEVICE_TABLE(spi, waveshare_eink_tbl);
 
-static void ws213fb_deferred_io(struct fb_info *info,
+static void ws_eink_deferred_io(struct fb_info *info,
 				struct list_head *pagelist)
 {
-	ws213fb_update_display(info->par);
+	ws_eink_update_display(info->par);
 }
 
-static struct fb_deferred_io ws213fb_defio = {
+static struct fb_deferred_io ws_eink_defio = {
 	.delay		= HZ / 30,
-	.deferred_io	= ws213fb_deferred_io,
+	.deferred_io	= ws_eink_deferred_io,
 };
 
-static int ws213fb_spi_probe(struct spi_device *spi)
+static int ws_eink_spi_probe(struct spi_device *spi)
 {
 	struct fb_info *info;
 	int retval = 0;
-	struct ws213fb_platform_data *pdata;
+	struct waveshare_eink_platform_data *pdata;
 	const struct spi_device_id *spi_id;
 	const struct waveshare_eink_device_properties *dev_props;
-	struct ws213fb_par *par;
+	struct ws_eink_fb_par *par;
 	u8 *vmem;
 	int vmem_size;
 
@@ -413,16 +415,16 @@ static int ws213fb_spi_probe(struct spi_device *spi)
 	if (!vmem)
 		return -ENOMEM;
 
-	info = framebuffer_alloc(sizeof(struct ws213fb_par), &spi->dev);
+	info = framebuffer_alloc(sizeof(struct ws_eink_fb_par), &spi->dev);
 	if (!info) {
 		retval = -ENOMEM;
 		goto fballoc_fail;
 	}
 
 	info->screen_base = (u8 __force __iomem *)vmem;
-	info->fbops = &ws213fb_ops;
+	info->fbops = &ws_eink_ops;
 
-	WARN_ON(strlcpy(info->fix.id, "waveshare213", sizeof(info->fix.id)) >=
+	WARN_ON(strlcpy(info->fix.id, "waveshare_eink", sizeof(info->fix.id)) >=
 		sizeof(info->fix.id));
 	info->fix.type		= FB_TYPE_PACKED_PIXELS;
 	info->fix.visual	= FB_VISUAL_PSEUDOCOLOR;
@@ -440,7 +442,7 @@ static int ws213fb_spi_probe(struct spi_device *spi)
 
 	info->flags = FBINFO_FLAG_DEFAULT | FBINFO_VIRTFB;
 
-	info->fbdefio = &ws213fb_defio;
+	info->fbdefio = &ws_eink_defio;
 	fb_deferred_io_init(info);
 
 	par = info->par;
@@ -465,7 +467,7 @@ static int ws213fb_spi_probe(struct spi_device *spi)
 
 	spi_set_drvdata(spi, info);
 
-	ws213fb_init_display(par);
+	ws_eink_init_display(par);
 
 	dev_dbg(&spi->dev,
 		"fb%d: %s frame buffer device,\n\tusing %d KiB of video memory\n",
@@ -482,7 +484,7 @@ fballoc_fail:
 	return retval;
 }
 
-static int ws213fb_spi_remove(struct spi_device *spi)
+static int ws_eink_spi_remove(struct spi_device *spi)
 {
 	struct fb_info *p = spi_get_drvdata(spi);
 	unregister_framebuffer(p);
@@ -493,17 +495,17 @@ static int ws213fb_spi_remove(struct spi_device *spi)
 	return 0;
 }
 
-static struct spi_driver ws213fb_driver = {
+static struct spi_driver ws_eink_driver = {
 	.driver = {
-		.name	= "waveshare_213",
+		.name	= "waveshare_eink",
 		.owner	= THIS_MODULE,
 	},
 
 	.id_table	= waveshare_eink_tbl,
-	.probe		= ws213fb_spi_probe,
-	.remove 	= ws213fb_spi_remove,
+	.probe		= ws_eink_spi_probe,
+	.remove 	= ws_eink_spi_remove,
 };
-module_spi_driver(ws213fb_driver);
+module_spi_driver(ws_eink_driver);
 
 MODULE_ALIAS("platform:eink");
 MODULE_LICENSE("GPL");
