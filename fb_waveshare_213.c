@@ -503,20 +503,7 @@ static struct spi_driver ws213fb_driver = {
 	.probe		= ws213fb_spi_probe,
 	.remove 	= ws213fb_spi_remove,
 };
-
-static int __init ws213fb_init(void)
-{
-	return spi_register_driver(&ws213fb_driver);
-}
-
-static void __exit ws213fb_exit(void)
-{
-	spi_unregister_driver(&ws213fb_driver);
-}
-
-
-module_init(ws213fb_init);
-module_exit(ws213fb_exit);
+module_spi_driver(ws213fb_driver);
 
 MODULE_ALIAS("platform:eink");
 MODULE_LICENSE("GPL");

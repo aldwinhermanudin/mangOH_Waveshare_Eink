@@ -16,7 +16,6 @@ What is the purpose of the `#ifdef __LITTLE_ENDIAN` sections in the driver?
 
 
 ## Enhancements Requested
-* Use the `module_spi_driver` macro to eliminate `ws213fb_init` and `ws213fb_exit`
 * No file, variable or function should contain the term "213" unless it is specifically related to
   that exact model of e-ink display.
 * In `mangOH_red_ws213.c`, `ourfb_data` should be renamed to `ws213_pdata`
