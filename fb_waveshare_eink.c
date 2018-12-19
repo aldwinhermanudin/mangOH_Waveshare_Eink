@@ -507,7 +507,6 @@ static struct spi_driver ws_eink_driver = {
 };
 module_spi_driver(ws_eink_driver);
 
-MODULE_ALIAS("platform:eink");
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Thong Nguyen");
 MODULE_DESCRIPTION("FB Display driver");
