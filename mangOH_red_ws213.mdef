@@ -12,3 +12,5 @@ cflags:
 params:
 {
 }
+
+load: manual
