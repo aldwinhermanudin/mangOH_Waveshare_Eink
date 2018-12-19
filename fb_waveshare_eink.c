@@ -509,5 +509,5 @@ module_spi_driver(ws_eink_driver);
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Thong Nguyen");
-MODULE_DESCRIPTION("FB Display driver");
+MODULE_DESCRIPTION("FB driver for Waveshare eink displays");
 MODULE_VERSION("0.1");
