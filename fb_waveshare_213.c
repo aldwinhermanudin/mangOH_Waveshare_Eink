@@ -102,19 +102,18 @@ static void ws213_write_data(struct ws213fb_par *par, u8 data)
 	}
 }
 
-#if 0
 /*
  * Commenting out this function because it's not currently used. Is it possible
  * to use this function in set_lut rather than a loop and calls to
  * ws213_write_data()?
  */
-static int ws213_write_data_buf(struct ws213fb_par *par, u8 *txbuf, size_t size)
+static int ws213_write_data_buf(struct ws213fb_par *par, const u8 *txbuf,
+				size_t size)
 {
 	gpio_set_value(par->dc, 1);
 	
 	return spi_write(par->spi, txbuf, size);
 }
-#endif
 
 static void ws213_write_cmd(struct ws213fb_par *par, u8 cmd)
 {
@@ -144,10 +143,11 @@ static void ws213_reset(struct ws213fb_par *par)
 
 static void set_lut(struct ws213fb_par *par, const u8 *lut, size_t lut_size)
 {
-	int i;
+	int ret;
 	ws213_write_cmd(par, WS_WRITE_LUT_REGISTER);
-	for (i = 0; i < lut_size; i++)
-		ws213_write_data(par, lut[i]);
+	ret = ws213_write_data_buf(par, lut, lut_size);
+	if (ret != 0)
+		dev_err(&par->spi->dev, "ws213_write_data_buf failed (%d)", ret);
 }
 
 static void int_lut(struct ws213fb_par *par, const u8 *lut, size_t lut_size)
@@ -200,29 +200,39 @@ static void set_memory_pointer(struct ws213fb_par *par, int x, int y)
 static void clear_frame_memory(struct ws213fb_par *par, u8 color)
 {
 	int j;
+	u8 solid_line[width / 8];
+	memset(solid_line, color, ARRAY_SIZE(solid_line));
 	set_memory_area(par, 0, 0, width - 1, height - 1);
-	for(j = 0; j < height; j++) {
-		int i;
+	for (j = 0; j < height; j++) {
+		int ret;
 		set_memory_pointer(par, 0, j);
 		ws213_write_cmd(par, WS_WRITE_RAM);
-		for(i = 0; i < width / 8; i++)
-			ws213_write_data(par, color);			
+		ret = ws213_write_data_buf(par, solid_line,
+					   ARRAY_SIZE(solid_line));
+		if (ret != 0)
+			dev_err(&par->spi->dev,
+				"Failure while writing display memory (%d)",
+				ret);
 	}
 }
 
 static void set_frame_memory(struct ws213fb_par *par, u8 *image_buffer)
 {
-	int j;
+	int row;
 	set_memory_area(par, 0, 0, width - 1, height - 1);
 
-	for (j = 0; j < height; j++) {
-		int i;
-		set_memory_pointer(par, 0, j);
+	for (row = 0; row < height; row++) {
+		int ret;
+		const size_t row_bytes = width / 8;
+		set_memory_pointer(par, 0, row);
 		ws213_write_cmd(par, WS_WRITE_RAM);
 
-		for (i = 0; i < (width - 1) / 8; i++)
-			ws213_write_data(par,
-					 image_buffer[i + j * (width / 8)]);
+		ret = ws213_write_data_buf(par, &image_buffer[row * row_bytes],
+					   row_bytes);
+		if (ret != 0)
+			dev_err(&par->spi->dev,
+				"Failure while writing display memory (%d)",
+				ret);
 	}
 }
 
